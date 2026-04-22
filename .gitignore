@@ -4,7 +4,7 @@
 *.bin
 *.map
 
-.vscode
+.vscode/
 
 # Editor/tooling
 compile_commands.json
