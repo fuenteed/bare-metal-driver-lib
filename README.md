@@ -8,7 +8,7 @@ Flash:
 
 `make flash`
 
-### If you want to debug with GDB
+### debug with GDB
 
 Terminal A (run OpenOCD and leave it running):
 
