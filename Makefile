@@ -24,7 +24,13 @@ LDFLAGS = \
 -Wl,-Map=$(TARGET).map \
 -nostdlib
 
-SRC = src/main.c startup/startup.c system/system_stm32l4xx.c $(DRIVERS_SRC)
+ifdef APP
+  MAIN_SRC = src/main_$(APP).c
+else
+  MAIN_SRC = src/main.c
+endif
+
+SRC = $(MAIN_SRC) startup/startup.c system/system_stm32l4xx.c $(DRIVERS_SRC)
 
 
 OBJ = $(SRC:.c=.o)
@@ -46,4 +52,4 @@ flash:
 	-c "program $(TARGET).elf verify reset exit"
 
 clean:
-	rm -f $(OBJ) *.elf *.bin *.map
+	rm -f $(OBJ) src/main*.o *.elf *.bin *.map

@@ -21,11 +21,12 @@ int main(void)
         //if it has then we know overflow has occured.
         //based on reference manual, this is set whenver 
         while(!(TIM2->SR & SR_UIF)){}
+        TIM2->SR &= ~SR_UIF;
 
-        
+        led_off();
 
-
-
+        while(!(TIM2->SR & SR_UIF)){}
+        TIM2->SR &= ~SR_UIF;
 
 
     }

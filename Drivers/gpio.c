@@ -27,7 +27,7 @@ void led_init(void)
     /*Enable the clock for GPIOA*/
     RCC->AHB2ENR |= GPIOAEN;
 
-    /*Set pin 5 to output mode - set bit 10 to 1 with the OR operation and clear bit 11 to turn it to 0*/
+    /*Set pin 5 to output mode - set bit 10 to 1 with the OR operation and clear bit 11 to turn it to 0 */
     GPIOA->MODER |= (1U << 10);
     GPIOA->MODER &=~(1U << 11);
 }
