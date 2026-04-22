@@ -4,7 +4,7 @@ Build:
 
 `make`
 
-Flash (one-shot program + verify + reset):
+Flash:
 
 `make flash`
 
