@@ -1,0 +1,32 @@
+# Commands to build and flash
+
+Build:
+
+`make`
+
+Flash (one-shot program + verify + reset):
+
+`make flash`
+
+### If you want to debug with GDB
+
+Terminal A (run OpenOCD and leave it running):
+
+`make openocd`
+
+Terminal B:
+
+`arm-none-eabi-gdb blinky.elf`
+
+Then in GDB:
+
+`target extended-remote :3333`
+
+`monitor reset halt`
+
+`load`
+
+`monitor reset init`
+
+`continue`
+

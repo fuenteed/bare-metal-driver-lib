@@ -1,0 +1,25 @@
+{
+    "configurations": [
+        {
+            "name": "STM32L4",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/CMSIS/CMSIS_5/CMSIS/Core/Include",
+                "${workspaceFolder}/Device/cmsis-device-l4/Include",
+                "${workspaceFolder}/Include"
+            ],
+            "defines": [
+                "STM32L476xx"
+            ],
+            "compilerPath": "/opt/homebrew/bin/arm-none-eabi-gcc",
+            "intelliSenseMode": "linux-gcc-arm",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "macFrameworkPath": [
+                "/System/Library/Frameworks",
+                "/Library/Frameworks"
+            ]
+        }
+    ],
+    "version": 4
+}
