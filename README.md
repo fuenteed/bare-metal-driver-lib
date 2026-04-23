@@ -3,6 +3,10 @@ Project: The goal of this project is to be a portable CLI framework for async ta
 
 The target board for this project is my STM32L476RG.
 
+Currently reading the book 'Bare Metal Embedded C Programming' by Israel Gbati which is the inspiration for this repo. 
+
+https://asciinema.org - for reference for myslef when i finish this project
+
 # Commands to build and flash
 
 Build:

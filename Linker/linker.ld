@@ -33,4 +33,7 @@ SECTIONS
     *(COMMON)
     _ebss = .;
   } > RAM
+
+  _end = _ebss;
+  PROVIDE(end = _ebss);
 }

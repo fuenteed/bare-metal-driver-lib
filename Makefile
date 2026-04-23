@@ -22,7 +22,7 @@ CFLAGS = \
 LDFLAGS = \
 -T linker/linker.ld \
 -Wl,-Map=$(TARGET).map \
--nostdlib
+-nostartfiles --specs=nosys.specs -lc
 
 ifdef APP
   MAIN_SRC = src/main_$(APP).c
