@@ -7,6 +7,9 @@ Currently reading the book 'Bare Metal Embedded C Programming' by Israel Gbati w
 
 https://asciinema.org - for reference for myslef when i finish this project
 
+
+Goal: User types something like `read gpio PA5` or `set PWM TIM2 CH1` or even `help`. 
+
 # Commands to build and flash
 
 Build:
