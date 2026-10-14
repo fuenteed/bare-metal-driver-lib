@@ -9,9 +9,9 @@
 typedef enum
 {
 	RING_BUFFER_FULL, // 0
-	RING_BUFFER_ERROR,
-	RING_BUFFER_SUCCESS,
-	RING_BUFFER_HAS_SPACE
+	RING_BUFFER_ERROR, // 1
+	RING_BUFFER_SUCCESS, // 2
+	RING_BUFFER_HAS_SPACE // 3
 } RING_BUFF_STATUS ;
 
 /*
@@ -29,7 +29,7 @@ struct ring_buffer {
 
 RING_BUFF_STATUS init_buffer(struct ring_buffer *buff, char *name);
 RING_BUFF_STATUS add_to_queue(struct ring_buffer *buff, uint8_t value);
-RING_BUFF_STATUS pop_from_queue(uint8_t value);
+RING_BUFF_STATUS pop_from_queue(struct ring_buffer *buff);
 RING_BUFF_STATUS is_buffer_full(struct ring_buffer *buff);
 
 

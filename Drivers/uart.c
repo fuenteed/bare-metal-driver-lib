@@ -1,7 +1,7 @@
 //in the user manual, PA2 has the function of USART2_TX
 //PA3 is for USART2_RX
 #include <stdarg.h>
-#include <stdio.h>
+#include <stdint.h>
 #include "uart.h"
 #include "stm32l476xx.h"
 #include "system_stm32l4xx.h"
@@ -21,25 +21,36 @@
 //bit 0 corresponds to USART2 enable
 #define USART2_PERIPH_ENABLE (1U << 0)
 
-static void _uart_write(int character);
+// bit 29 corresponds to enabling FIFO mode
+#define USART2_FIFO_ENABLE (1U << 29)
+
+#define USART2_RECEIVER_ENABLE (1 << 2)
+
+static void _uart_write(uint8_t character);
 static void _usart_set_baud(uint32_t system_clock, uint32_t input_baud_rate);
 
 
-void uart_printf(const char *fmt, ...) {
-    char buf[128];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, args);
-    va_end(args);
-    // send the buffer over UART
-    char *p = buf;
-    while (*p) _uart_write(*p++);
+void uart_printf(const uint8_t *string)
+{
+    while (*string) {
+        // each string is a string of byte-sized chars
+        // pointer to byte is just an array, so starts at first byte
+        // write each character by dereferencing, then accessing, then add 1
+        _uart_write(*string++);
+    }    
 }
 
-static void _uart_write(int character)
+void uart_putchar(const char ch)
+{
+    _uart_write(ch);
+}
+
+static void _uart_write(uint8_t character)
 {
     //check to see if uart data register is empty
     //We can ONLY write to the TDR if TXE is equal to 1
+    // USART2_ISR = usart interrupt and status register
+    // while transmit buffer not empty inside of isr register, wait.
     while((!(USART2->ISR & USART_ISR_TXE))){}
 
     //strip everything except lowest 8 bits, place into transmit data register.
@@ -61,11 +72,10 @@ static void _usart_set_baud(uint32_t system_clock, uint32_t input_baud_rate)
 }
 
 
-void _usart_init(void)
+void _usart_init_polling(void)
 {
     //first step: setup system clock for GPIO Port A
     RCC->AHB2ENR |= GPIOA_ENABLE;
-
     RCC->APB1ENR1 |= USART2_ENABLE;
 
     //configure Port A Pin 2 for USART transmission
@@ -73,6 +83,11 @@ void _usart_init(void)
     //alternate function mode is pin 5 has to be set to 1, and pin 4 to be set to 0
     GPIOA->MODER |= (1U << 5); // set bit 5
     GPIOA->MODER &= ~(1U << 4); //clear bit 4
+
+    //now we need to configure Port A pin 3 to be usart
+    // usart receiver
+    GPIOA->MODER |= (1U << 7);
+    GPIOA->MODER &= ~(1U << 6);
 
     //each pin gets a 4 bit field. 
     //pin 0 gets 0-3, pin 2 gets 4-7, pin 3 gets 8 - 11, pin 4 gets 12-15
@@ -87,12 +102,49 @@ void _usart_init(void)
     GPIOA->AFR[0] |= (1U << 10);
     GPIOA->AFR[0] &= ~(1U << 11);
 
+    // pins 7 and 6 correspond to pin 3
+
+    /// 0111: AF7 
+    GPIOA->AFR[0] |= (1U << 12);
+    GPIOA->AFR[0] |= (1U << 13);
+    GPIOA->AFR[0] |= (1U << 14);
+    GPIOA->AFR[0] &= ~(1U << 15);
+
     _usart_set_baud(SystemCoreClock, 115200);
 
     //set transmission direction (TX)
     USART2->CR1 |= USART2_TRX_ENABLE;
 
+    // enable this to receive
+    USART2->CR1 |= USART2_RECEIVER_ENABLE;
+
     //enable usart 
     USART2->CR1 |= USART2_PERIPH_ENABLE;
+}
 
+
+//function to initialize interrupt-based uart
+void _usart_init_interrupt(void) 
+{
+    // first step: setup system clock for GPIO Port A
+    RCC->AHB2ENR |= GPIOA_ENABLE;
+
+    RCC->APB1ENR1 |= USART2_ENABLE;
+
+    GPIOA->MODER |= (1U << 5); // set bit 5
+    GPIOA->MODER &= ~(1U << 4); //clear bit 4
+
+    //to insert 7, we should write 0111 into this 4-bit field for PA2 bits 8-11
+    GPIOA->AFR[0] |= (1U << 8);
+    GPIOA->AFR[0] |= (1U << 9);
+    GPIOA->AFR[0] |= (1U << 10);
+    GPIOA->AFR[0] &= ~(1U << 11);
+
+    _usart_set_baud(SystemCoreClock, 115200);
+
+    // enable reciever to start looking for a start bit
+    USART2->CR1 |= USART2_RECEIVER_ENABLE;
+
+    //enable usart 
+    USART2->CR1 |= USART2_PERIPH_ENABLE;
 }

@@ -1,3 +1,4 @@
+#include "stm32l476xx.h"
 #include <stdint.h>
 
 extern uint32_t _sidata;
