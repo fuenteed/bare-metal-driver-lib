@@ -1,5 +1,7 @@
 //in the user manual, PA2 has the function of USART2_TX
 //PA3 is for USART2_RX
+#include <stdarg.h>
+#include <stdio.h>
 #include "uart.h"
 #include "stm32l476xx.h"
 #include "system_stm32l4xx.h"
@@ -59,7 +61,7 @@ static void _usart_set_baud(uint32_t system_clock, uint32_t input_baud_rate)
 }
 
 
-void _usart_init(USART_Handle_t *handle)
+void _usart_init(void)
 {
     //first step: setup system clock for GPIO Port A
     RCC->AHB2ENR |= GPIOA_ENABLE;

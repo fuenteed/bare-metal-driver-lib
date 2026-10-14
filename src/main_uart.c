@@ -1,3 +1,4 @@
+#include "stm32l476xx.h"
 #include "uart.h"
 #include <stdio.h>
 

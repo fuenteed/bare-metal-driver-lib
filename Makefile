@@ -21,8 +21,10 @@ CFLAGS = \
 
 LDFLAGS = \
 -T linker/linker.ld \
--Wl,-Map=$(TARGET).map \
+-Wl,-Map=build/$(TARGET).map \
 -nostartfiles --specs=nosys.specs -lc
+
+APP=uart
 
 ifdef APP
   MAIN_SRC = src/main_$(APP).c
@@ -33,23 +35,30 @@ endif
 SRC = $(MAIN_SRC) startup/startup.c system/system_stm32l4xx.c $(DRIVERS_SRC)
 
 
-OBJ = $(SRC:.c=.o)
+BUILD = build
+OBJ = $(SRC:%.c=$(BUILD)/%.o)
 
-all: $(TARGET).elf $(TARGET).bin
+all: $(BUILD)/$(TARGET).elf $(BUILD)/$(TARGET).bin
 
-$(TARGET).elf: $(OBJ)
+# take all object files and turn into elf
+$(BUILD)/$(TARGET).elf: $(OBJ)
 	$(CC) $(OBJ) $(CFLAGS) $(LDFLAGS) -o $@
 	$(SIZE) $@
 
-%.o: %.c
+# take all c files and turn into object files (mirrors source tree under build/)
+$(BUILD)/%.o: %.c
+	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(TARGET).bin: $(TARGET).elf
+# take elf and turn into executable binary
+$(BUILD)/$(TARGET).bin: $(BUILD)/$(TARGET).elf
 	$(OBJCOPY) -O binary $< $@
 
-flash:
+flash: $(BUILD)/$(TARGET).elf
 	openocd -f board/st_nucleo_l4.cfg \
-	-c "program $(TARGET).elf verify reset exit"
+	-c "program $(BUILD)/$(TARGET).elf verify reset exit"
 
 clean:
-	rm -f $(OBJ) src/main*.o *.elf *.bin *.map
+	rm -rf $(BUILD)
+
+.PHONY: all flash clean
