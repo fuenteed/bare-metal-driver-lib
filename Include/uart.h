@@ -8,10 +8,14 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
+#define MAX_COMMAND_LENGTH 20
+
 void _usart_init_polling(void);  //function to setup the usart peripheral
 void  uart_printf(const uint8_t *string);
 void uart_read_byte(const uint8_t *byte);
 void uart_putchar(const char ch);
+void uart_process_string(uint8_t *str);
+int uart_str_len(const uint8_t *str);
 
 void _usart_init_interrupt(void);
 #endif /*UART_H_*/

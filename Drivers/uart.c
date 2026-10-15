@@ -25,6 +25,7 @@
 #define USART2_FIFO_ENABLE (1U << 29)
 
 #define USART2_RECEIVER_ENABLE (1 << 2)
+#define RX_HAS_DATA (1 << 5)
 
 static void _uart_write(uint8_t character);
 static void _usart_set_baud(uint32_t system_clock, uint32_t input_baud_rate);
@@ -38,6 +39,7 @@ void uart_printf(const uint8_t *string)
         // write each character by dereferencing, then accessing, then add 1
         _uart_write(*string++);
     }    
+    _uart_write('\n');
 }
 
 void uart_putchar(const char ch)
@@ -56,6 +58,25 @@ static void _uart_write(uint8_t character)
     //strip everything except lowest 8 bits, place into transmit data register.
     USART2->TDR = (character & 0xFF);
 }
+
+
+void uart_process_string(uint8_t *string)
+{
+    //if(uart_str_len(string) > MAX_COMMAND_LENGTH) return;
+    //read byte by byte
+    uint8_t idx = 0;
+    while (idx < MAX_COMMAND_LENGTH - 1){
+        while(!(USART2->ISR & RX_HAS_DATA)){} // waiting for data
+        // once rx has data, process that byte
+        uint8_t ch =  (USART2->RDR & 0xFFU);
+        if(ch == '\n' || ch == '\r'){
+            break;
+        }
+        *string++ = ch;
+        idx++;
+    }   
+   *string = '\0';
+}   
 
 static uint16_t _usart_compute_baud(uint32_t system_clock, uint32_t baud_rate)
 {
