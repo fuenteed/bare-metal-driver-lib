@@ -22,14 +22,35 @@
 #define USART2_PERIPH_ENABLE (1U << 0)
 
 // bit 29 corresponds to enabling FIFO mode
-#define USART2_FIFO_ENABLE (1U << 29)
+#define USART2_INTERRUPT_ENABLE (1U << 5)
 
 #define USART2_RECEIVER_ENABLE (1 << 2)
 #define RX_HAS_DATA (1 << 5)
+#define IRQ_PRIO_UART 7
 
 static void _uart_write(uint8_t character);
 static void _usart_set_baud(uint32_t system_clock, uint32_t input_baud_rate);
 
+void USART2_IRQHandler(void)
+{
+    // as an ISR, the code needs to be minimal to prevent undeterministic behavior
+    // the FIFO is disabled
+
+    // read the interrupt and status register contents into isr
+    uint32_t isr = USART2->ISR;
+
+    // if the overrun error bit has been set then clear the flag in the ICR
+    if (isr & USART_ISR_ORE) {
+        USART2->ICR = USART_ICR_ORECF;   // clear overrun
+    }
+    
+    // check if Read data register not empty set, if it is, read RDR
+    if (isr & USART_ISR_RXNE) {
+        // uint8_t b = (uint8_t)USART2->RDR; // reading RDR clears RXNE
+        // push b into a ring buffer
+    }
+    return;
+}
 
 void uart_printf(const uint8_t *string)
 {
@@ -149,11 +170,16 @@ void _usart_init_interrupt(void)
 {
     // first step: setup system clock for GPIO Port A
     RCC->AHB2ENR |= GPIOA_ENABLE;
-
     RCC->APB1ENR1 |= USART2_ENABLE;
 
+    // set the port and pin to alternate functino mode
     GPIOA->MODER |= (1U << 5); // set bit 5
     GPIOA->MODER &= ~(1U << 4); //clear bit 4
+
+    //now we need to configure Port A pin 3 to be usart
+    // usart receiver
+    GPIOA->MODER |= (1U << 7);
+    GPIOA->MODER &= ~(1U << 6);
 
     //to insert 7, we should write 0111 into this 4-bit field for PA2 bits 8-11
     GPIOA->AFR[0] |= (1U << 8);
@@ -161,10 +187,28 @@ void _usart_init_interrupt(void)
     GPIOA->AFR[0] |= (1U << 10);
     GPIOA->AFR[0] &= ~(1U << 11);
 
+    // pins 7 and 6 correspond to pin 3
+    /// 0111: AF7 
+    GPIOA->AFR[0] |= (1U << 12);
+    GPIOA->AFR[0] |= (1U << 13);
+    GPIOA->AFR[0] |= (1U << 14);
+    GPIOA->AFR[0] &= ~(1U << 15);
+
+
     _usart_set_baud(SystemCoreClock, 115200);
 
     // enable reciever to start looking for a start bit
     USART2->CR1 |= USART2_RECEIVER_ENABLE;
+
+    // enable interrupt mode
+    // to enable interrupts, we need to enable the RXNEIE bit in the CR1 register
+    // this correcsponds to bit 5. 
+    USART2->CR1 |= USART2_INTERRUPT_ENABLE;
+
+    // we need to configure interrupt, including setting priority and actually enabling it
+    NVIC_SetPriority(USART2_IRQn, IRQ_PRIO_UART);
+    NVIC_ClearPendingIRQ(USART2_IRQn);
+    NVIC_EnableIRQ(USART2_IRQn);
 
     //enable usart 
     USART2->CR1 |= USART2_PERIPH_ENABLE;
