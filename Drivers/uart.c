@@ -3,8 +3,10 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include "uart.h"
+#include "ring_buffer.h"
 #include "stm32l476xx.h"
 #include "system_stm32l4xx.h"
+
 
 //bit 1 to enable clock for Port A
 #define GPIOA_ENABLE (1U << 0)
@@ -31,6 +33,9 @@
 static void _uart_write(uint8_t character);
 static void _usart_set_baud(uint32_t system_clock, uint32_t input_baud_rate);
 
+static struct ring_buffer rx;
+static struct ring_buffer tx;
+
 void USART2_IRQHandler(void)
 {
     // as an ISR, the code needs to be minimal to prevent undeterministic behavior
@@ -46,11 +51,28 @@ void USART2_IRQHandler(void)
     
     // check if Read data register not empty set, if it is, read RDR
     if (isr & USART_ISR_RXNE) {
-        // uint8_t b = (uint8_t)USART2->RDR; // reading RDR clears RXNE
+        uint8_t b = (uint8_t)USART2->RDR; // reading RDR clears RXNE
         // push b into a ring buffer
+        add_to_queue(&rx, b);
+
     }
     return;
 }
+
+static uint16_t _usart_compute_baud(uint32_t system_clock, uint32_t baud_rate)
+{
+    return (system_clock + (baud_rate / 2 )) / baud_rate;
+}
+
+//UART hardware does not work directly with baud rate, it needs a divisor number to place into 
+//a register to tell the hardware to divide by a number to get the right timing
+//divisor = clock_freq / baudrate
+static void _usart_set_baud(uint32_t system_clock, uint32_t input_baud_rate)
+{
+    //register gets not the baud rate, rather the divisor which then does -> baudrate = clock freq / divisor (BRR value)
+    USART2->BRR = _usart_compute_baud(SystemCoreClock, input_baud_rate);
+}
+
 
 void uart_printf(const uint8_t *string)
 {
@@ -80,7 +102,6 @@ static void _uart_write(uint8_t character)
     USART2->TDR = (character & 0xFF);
 }
 
-
 void uart_process_string(uint8_t *string)
 {
     //if(uart_str_len(string) > MAX_COMMAND_LENGTH) return;
@@ -98,21 +119,6 @@ void uart_process_string(uint8_t *string)
     }   
    *string = '\0';
 }   
-
-static uint16_t _usart_compute_baud(uint32_t system_clock, uint32_t baud_rate)
-{
-    return (system_clock + (baud_rate / 2 )) / baud_rate;
-}
-
-//UART hardware does not work directly with baud rate, it needs a divisor number to place into 
-//a register to tell the hardware to divide by a number to get the right timing
-//divisor = clock_freq / baudrate
-static void _usart_set_baud(uint32_t system_clock, uint32_t input_baud_rate)
-{
-    //register gets not the baud rate, rather the divisor which then does -> baudrate = clock freq / divisor (BRR value)
-    USART2->BRR = _usart_compute_baud(SystemCoreClock, input_baud_rate);
-}
-
 
 void _usart_init_polling(void)
 {
@@ -172,7 +178,8 @@ void _usart_init_interrupt(void)
     RCC->AHB2ENR |= GPIOA_ENABLE;
     RCC->APB1ENR1 |= USART2_ENABLE;
 
-    // set the port and pin to alternate functino mode
+    // set the port and pin to alternate function mode
+    // usart transmitters
     GPIOA->MODER |= (1U << 5); // set bit 5
     GPIOA->MODER &= ~(1U << 4); //clear bit 4
 
@@ -210,6 +217,15 @@ void _usart_init_interrupt(void)
     NVIC_ClearPendingIRQ(USART2_IRQn);
     NVIC_EnableIRQ(USART2_IRQn);
 
+    init_buffer(&rx);
+    init_buffer(&tx);
     //enable usart 
     USART2->CR1 |= USART2_PERIPH_ENABLE;
+}
+
+// user level api
+// 
+uint8_t uart_itr_read_byte(void)
+{
+    return rx.buffer[rx.head];
 }
