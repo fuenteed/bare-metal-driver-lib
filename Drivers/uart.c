@@ -1,6 +1,5 @@
 //in the user manual, PA2 has the function of USART2_TX
 //PA3 is for USART2_RX
-#include <stdarg.h>
 #include <stdint.h>
 #include "uart.h"
 #include "ring_buffer.h"
@@ -24,7 +23,8 @@
 #define USART2_PERIPH_ENABLE (1U << 0)
 
 // bit 29 corresponds to enabling FIFO mode
-#define USART2_INTERRUPT_ENABLE (1U << 5)
+#define USART2_INTERRUPT_ENABLE_RX (1U << 5)
+#define USART2_INTERRUPT_ENABLE_TX (1U << 7)
 
 #define USART2_RECEIVER_ENABLE (1 << 2)
 #define RX_HAS_DATA (1 << 5)
@@ -38,11 +38,27 @@ static struct ring_buffer tx;
 
 void USART2_IRQHandler(void)
 {
-    // as an ISR, the code needs to be minimal to prevent undeterministic behavior
-    // the FIFO is disabled
-
     // read the interrupt and status register contents into isr
     uint32_t isr = USART2->ISR;
+    uint32_t cr1 = USART2->CR1;
+
+    // dont even check if tx interrupts not enabled
+    if(cr1 & USART_CR1_TXEIE){
+        // if they are enabled, then we need to 
+
+        // 0: data is not transferred the shift register
+        // 1: data is transferred to the shift register
+        if (isr & USART_ISR_TXE) { // if TXE is set = if tranmit data register empty is empty, so we can write the next byte
+            if(is_buffer_empty(&tx) == RING_BUFFER_EMPTY) { // if buffer empty, then nothing needs to be sent
+                // ring buffer empty
+                // if buff empty, then we have nothing to transmit, so we dont need this interrupt enabled
+                USART2->CR1 &= ~(USART_CR1_TXEIE);
+            }else{
+                // we know that writing to the TDR clears the TXE
+                USART2->TDR = pop_from_queue(&tx);
+            }
+        }
+    }
 
     // if the overrun error bit has been set then clear the flag in the ICR
     if (isr & USART_ISR_ORE) {
@@ -54,7 +70,6 @@ void USART2_IRQHandler(void)
         uint8_t b = (uint8_t)USART2->RDR; // reading RDR clears RXNE
         // push b into a ring buffer
         add_to_queue(&rx, b);
-
     }
     return;
 }
@@ -207,10 +222,13 @@ void _usart_init_interrupt(void)
     // enable reciever to start looking for a start bit
     USART2->CR1 |= USART2_RECEIVER_ENABLE;
 
-    // enable interrupt mode
+    // enable interrupt mode for receiver
     // to enable interrupts, we need to enable the RXNEIE bit in the CR1 register
     // this correcsponds to bit 5. 
-    USART2->CR1 |= USART2_INTERRUPT_ENABLE;
+    USART2->CR1 |= USART2_INTERRUPT_ENABLE_RX;
+
+    //set transmission direction (TX)
+    USART2->CR1 |= USART2_TRX_ENABLE;
 
     // we need to configure interrupt, including setting priority and actually enabling it
     NVIC_SetPriority(USART2_IRQn, IRQ_PRIO_UART);
@@ -227,5 +245,23 @@ void _usart_init_interrupt(void)
 // 
 uint8_t uart_itr_read_byte(void)
 {
-    return rx.buffer[rx.head];
+    if(is_buffer_empty(&rx) == RING_BUFFER_EMPTY) {
+        return 0;
+    }
+
+    uint8_t popped = pop_from_queue(&rx);
+
+    return popped;
+}
+
+void uart_itr_write_byte(uint8_t b)
+{
+    if(is_buffer_full(&tx) == RING_BUFFER_FULL){
+        return;
+    }
+
+    add_to_queue(&tx,b);
+    // add to ring buffer and signal that we have some data
+    // enable interrupt for transmission
+    USART2->CR1 |= USART_CR1_TXEIE;
 }

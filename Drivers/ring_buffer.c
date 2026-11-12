@@ -38,14 +38,14 @@ RING_BUFF_STATUS is_buffer_empty(struct ring_buffer *buff)
 // write the byte 'value' into the ring buffer
 RING_BUFF_STATUS add_to_queue(struct ring_buffer *buff, uint8_t value)
 {
-	//first check if the buffer is full -> if it is then we need to pop from the tail
-	if (is_buffer_full(buff) == RING_BUFFER_FULL){
-		pop_from_queue(buff);
-	}
 
 	// if we are allowed to add element, then add it
-	buff->buffer[buff->head % RING_BUFFER_SIZE] = value;
-	buff->head = buff->head + 1 % RING_BUFFER_SIZE; // add 1 to it to add a byte.
+	buff->buffer[buff->head] = value;
+	buff->head++;
+
+	if(buff->head == RING_BUFFER_SIZE){
+		buff->head = 0;
+	}
 	return RING_BUFFER_SUCCESS;
 }
 
@@ -53,9 +53,10 @@ RING_BUFF_STATUS add_to_queue(struct ring_buffer *buff, uint8_t value)
 uint8_t pop_from_queue(struct ring_buffer *buff)
 {
 	// grab the element popped, store it
-	uint8_t popped = buff->buffer[buff->tail % RING_BUFFER_SIZE];
-	buff->buffer[buff->tail % RING_BUFFER_SIZE] = 0;
-	buff->tail = buff->tail + 1 % RING_BUFFER_SIZE;
+	uint8_t popped = buff->buffer[buff->tail];
+	buff->tail++;
+	if(buff->tail == RING_BUFFER_SIZE)
+		buff->tail = 0;
 	return popped;
 }
 

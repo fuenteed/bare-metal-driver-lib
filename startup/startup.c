@@ -209,6 +209,8 @@ void (* const vector_table[])(void) =
     FPU_IRQHandler,                     /*  97 */
 };
 
+
+// copy data from ROM to RAM
 void Reset_Handler(void)
 {
     uint32_t *src = &_sidata;

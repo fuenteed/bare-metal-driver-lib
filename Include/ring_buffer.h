@@ -32,6 +32,7 @@ RING_BUFF_STATUS init_buffer(struct ring_buffer *buff);
 RING_BUFF_STATUS add_to_queue(struct ring_buffer *buff, uint8_t value);
 uint8_t pop_from_queue(struct ring_buffer *buff);
 RING_BUFF_STATUS is_buffer_full(struct ring_buffer *buff);
+RING_BUFF_STATUS is_buffer_empty(struct ring_buffer *buff);
 
 
 #endif // RING_BUFFER_H_

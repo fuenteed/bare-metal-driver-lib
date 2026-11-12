@@ -24,4 +24,5 @@ uint8_t uart_itr_read_byte(void);
 void uart_itr_process_string(void);
 
 void _usart_init_interrupt(void);
+void uart_itr_write_byte(uint8_t b);
 #endif /*UART_H_*/

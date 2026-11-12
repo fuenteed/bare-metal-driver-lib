@@ -21,7 +21,9 @@ int main(void)
             // first we need to check if TXE is empty
 
             //uart_printf(char_read);
-            uart_putchar(char_read);
+            if(char_read)
+                uart_itr_write_byte(char_read);
+          
 
 
     }
